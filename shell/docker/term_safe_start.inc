@@ -10,6 +10,7 @@ function term_safe_start {
 		while [[ "$n" -gt 0 ]] && [[ -z "$CONSUMED" ]]
 		do
 			sleep 0.2
+			n=$((n-1))
 		done
 		if [[ -z "$CONSUMED" ]]
 		then
