@@ -32,10 +32,16 @@ function post_execute() {
 		"$SH" -c "$SCRIPT" && rc=0 || rc=$?
 		echo
 		[[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
+		[[ $rc != 0 ]] && return 1
 		echo "--- end script $var ------------------"
 		echo
 	done
 }
+
+if [[ -f "/usr/local/bin/update_certs.sh" ]]
+then
+	"/usr/local/bin/update_certs.sh"
+fi
 
 for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^PRE_EXECUTE|PRE_EXECUTE_.*$' | sort)
 do
@@ -45,6 +51,7 @@ do
 	"$SH" -c "$SCRIPT" && rc=0 || rc=$?
 	echo
 	[[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
+	[[ $rc != 0 ]] && return 1
 	echo "--- end script $var ------------------"
 	echo
 done
@@ -56,6 +63,7 @@ do
 	"$file" && rc=0 || rc=$?
 	echo
 	[[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
+	[[ $rc != 0 ]] && return 1
 	echo "--- end script $file ------------------"
 	echo
 done
@@ -93,5 +101,6 @@ else
 	fi
 fi
 [[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
+[[ $rc != 0 ]] && exit 1
 
 IFS=$OFS
