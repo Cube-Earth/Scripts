@@ -12,7 +12,7 @@ set -o nounset
 wget -qO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xfz -
 chmod -R +x *.sh
 
-mv shell/k8s/pod/lazy-shell.sh /usr/local/bin
+mv Scripts-master/shell/k8s/pod/lazy-shell.sh /usr/local/bin
 ln -s /usr/local/bin/lazy-shell.sh /bin/lsh
 
 while getopts ":c" opt; do
@@ -24,12 +24,12 @@ while getopts ":c" opt; do
         			;;
 
         		run)
-        			mv shell/k8s/pod/run.sh /usr/local/bin
+        			mv Scripts-master/shell/k8s/pod/run.sh /usr/local/bin
         			mkdir /usr/local/bin/pre_execute /usr/local/bin/post_execute
         			;;
         			
         		term)
-        			mv shell/docker/term_safe_start.inc /usr/local/bin
+        			mv Scripts-master/shell/docker/term_safe_start.inc /usr/local/bin
         			;;
         			
         		*)
