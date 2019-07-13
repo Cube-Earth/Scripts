@@ -9,7 +9,7 @@ set -o errexit
 set -o nounset
 [[ "$is_bash" -eq 1 ]] && set -o pipefail
 
-wget -sO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xf -
+wget -qO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xf -
 chmod -R +x *.sh
 
 mv shell/k8s/pod/lazy-shell.sh /usr/local/bin
@@ -20,7 +20,7 @@ while getopts ":c" opt; do
         c)
         	case "$OPTARG" in
         		certs)
-        			wget -sO- https://raw.githubusercontent.com/Cube-Earth/container-k8s-cert-server/master/pod-scripts/prepare-certs.sh | sh
+        			wget -qO- https://raw.githubusercontent.com/Cube-Earth/container-k8s-cert-server/master/pod-scripts/prepare-certs.sh | sh
         			;;
 
         		run)
