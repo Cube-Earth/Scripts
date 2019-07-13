@@ -83,12 +83,15 @@ has_post_execute=$(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr
 
 if [[ "$has_post_execute" -eq 0 ]
 then
+	i=0
 	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 -name "has_*.sh")
 	do
 		has_post_execute=$($file && rc=0 || rc=$?)
 		[[ "$rc" -ne 0 ]] && echo "ERROR: script '$file' failed!" && exit 1
 		[[ "$has_post_execute" -ne 0 ]] && break
+		i=$((i+1))
 	done
+	[[ "$i" -eq 0 ]] && has_post_execute=1
 fi
 
 
