@@ -25,6 +25,7 @@ while getopts ":c" opt; do
 
         		run)
         			mv shell/k8s/pod/run.sh /usr/local/bin
+        			mkdir /usr/local/bin/pre_execute /usr/local/bin/post_execute
         			;;
         			
         		term)

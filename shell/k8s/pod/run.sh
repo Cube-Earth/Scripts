@@ -12,7 +12,7 @@ function post_execute() {
 	then
 		"$SH" -c "$WAIT_POST_EXECUTE"
 	else
-		if [[ -f "/usr/local/bin/wait-ready.sh" ]]
+		if [[ -f "/usr/local/bin/post_execute/wait-ready.sh" ]]
 		then
 			/usr/local/bin/wait-ready.sh
 		else
@@ -35,6 +35,18 @@ function post_execute() {
 		echo "--- end script $var ------------------"
 		echo
 	done
+	
+	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 \( -name "*.sh" -and ! -name "has*" -and ! -name "wait-ready.sh" \) 2>/dev/null || rc=$?)
+	do
+		echo
+		echo "--- start script $file ----------------"
+		"$file" && rc=0 || rc=$?
+		echo
+		[[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
+		[[ $rc != 0 ]] && return 1
+		echo "--- end script $file ------------------"
+		echo
+done
 }
 
 if [[ -f "/usr/local/bin/update_certs.sh" ]]
@@ -55,7 +67,7 @@ do
 	echo
 done
 
-for file in $(ls -1 /usr/local/bin/startup 2>/dev/null || rc=$?)
+for file in $(ls -1 /usr/local/bin/pre_execute 2>/dev/null || rc=$?)
 do
 	echo
 	echo "--- start script $file ----------------"
@@ -68,6 +80,18 @@ do
 done
 
 has_post_execute=$(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | wc -l)
+
+if [[ "$has_post_execute" -eq 0 ]
+then
+	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 -name "has_*.sh")
+	do
+		has_post_execute=$($file && rc=0 || rc=$?)
+		[[ "$rc" -ne 0 ]] && echo "ERROR: script '$file' failed!" && exit 1
+		[[ "$has_post_execute" -ne 0 ]] && break
+	done
+fi
+
+
 if [[ "$has_post_execute" -gt 0 ]]
 then
 	post_execute &
