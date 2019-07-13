@@ -15,7 +15,7 @@ find . -type f -name "*.sh" -exec chmod +x {} \;
 mv Scripts-master/shell/k8s/pod/lazy-shell.sh /usr/local/bin
 ln -s /usr/local/bin/lazy-shell.sh /bin/lsh
 
-while getopts ":c" opt; do
+while getopts "c:" opt; do
     case "${opt}" in
         c)
         	case "$OPTARG" in
@@ -49,5 +49,4 @@ done
 shift $((OPTIND-1))
 
 rm -Rf $tmp
-
 
