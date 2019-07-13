@@ -9,7 +9,7 @@ set -o errexit
 set -o nounset
 [[ "$is_bash" -eq 1 ]] && set -o pipefail
 
-wget -qO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xf -
+wget -qO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xfj -
 chmod -R +x *.sh
 
 mv shell/k8s/pod/lazy-shell.sh /usr/local/bin
