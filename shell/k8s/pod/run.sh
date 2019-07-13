@@ -40,7 +40,7 @@ function post_execute() {
 	do
 		echo
 		echo "--- start script $file ----------------"
-		"$file" && rc=0 || rc=$?
+		"$SH" "$file" && rc=0 || rc=$?
 		echo
 		[[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
 		[[ $rc != 0 ]] && return 1
@@ -71,7 +71,7 @@ for file in $(ls -1 /usr/local/bin/pre_execute 2>/dev/null || rc=$?)
 do
 	echo
 	echo "--- start script $file ----------------"
-	"$file" && rc=0 || rc=$?
+	"$SH" "$file" && rc=0 || rc=$?
 	echo
 	[[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
 	[[ $rc != 0 ]] && return 1
@@ -108,7 +108,7 @@ then
 	else
 		f="/usr/local/bin/startup.sh" 
 		if [[ -f "$f" ]] then
-			"$f" && rc=0 || rc=$?
+			"$SH" "$f" && rc=0 || rc=$?
 		else
 			tail -f /dev/null
 		fi

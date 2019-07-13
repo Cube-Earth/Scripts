@@ -10,7 +10,7 @@ set -o nounset
 [[ "$is_bash" -eq 1 ]] && set -o pipefail
 
 wget -qO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xfz -
-chmod -R +x *.sh
+find . -type f -name "*.sh" -exec chmod +x {} \;
 
 mv Scripts-master/shell/k8s/pod/lazy-shell.sh /usr/local/bin
 ln -s /usr/local/bin/lazy-shell.sh /bin/lsh
