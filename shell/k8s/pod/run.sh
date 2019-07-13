@@ -1,10 +1,6 @@
-#!/bin/bash
+#!/bin/lsh
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
-[[ -f /bin/bash ]] && SH=/bin/bash || SH=/bin/sh
+SH="/bin/lsh"
 
 OFS=$IFS
 IFS=$'\n'
@@ -23,6 +19,9 @@ function post_execute() {
 			sleep 5
 		fi
 	fi
+	
+	grep -e '^INITIALIZE=true$' /proc/*/environ && rc=0 || rc=$?
+	[[ $rc -eq 0 ]] && INITIALIZE=true
 		
 	for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | sort)
 	do
