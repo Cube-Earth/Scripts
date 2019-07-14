@@ -14,16 +14,16 @@ function post_execute() {
 	else
 		if [[ -f "/usr/local/bin/post_execute/wait-ready.sh" ]]
 		then
-			/usr/local/bin/wait-ready.sh
+			/usr/local/bin/post_execute/wait-ready.sh
 		else
 			sleep 5
 		fi
 	fi
 	
-	grep -e '^INITIALIZE=true$' /proc/*/environ && rc=0 || rc=$?
-	[[ $rc -eq 0 ]] && INITIALIZE=true
+	n=$(grep -e '^INITIALIZE=true$' /proc/*/environ 2>/dev/null | wc -l || rc=$?)
+	[[ "$n" -gt 0 ]] && export INITIALIZE=true
 		
-	for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | sort)
+	for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | sort || rc=$?)
 	do
 		echo
 		echo "--- start script $var ----------------"
@@ -36,7 +36,7 @@ function post_execute() {
 		echo
 	done
 	
-	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 \( -name "*.sh" -and ! -name "has*" -and ! -name "wait-ready.sh" \) 2>/dev/null || rc=$?)
+	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 \( -name "*.sh" -and ! -name "has_*" -and ! -name "has-*" -and ! -name "wait-ready.sh" \) 2>/dev/null || rc=$?)
 	do
 		echo
 		echo "--- start script $file ----------------"
@@ -49,12 +49,12 @@ function post_execute() {
 done
 }
 
-if [[ -f "/usr/local/bin/update_certs.sh" ]]
+if [[ -f "/usr/local/bin/update-certs.sh" ]]
 then
-	"/usr/local/bin/update_certs.sh"
+	"/usr/local/bin/update-certs.sh"
 fi
 
-for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^PRE_EXECUTE|PRE_EXECUTE_.*$' | sort)
+for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^PRE_EXECUTE|PRE_EXECUTE_.*$' | sort || rc=$?)
 do
 	echo
 	echo "--- start script $var ----------------"
@@ -79,14 +79,15 @@ do
 	echo
 done
 
-has_post_execute=$(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | wc -l)
+has_post_execute=$(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | wc -l || rc=$?)
 
-if [[ "$has_post_execute" -eq 0 ]
+if [[ "$has_post_execute" -eq 0 ]]
 then
 	i=0
-	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 -name "has_*.sh")
+	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 \( -name "has_*.sh" -or -name "has-*.sh" \) || rc=$?)
 	do
-		has_post_execute=$($file && rc=0 || rc=$?)
+		has_post_execute=$("$SH" "$file")
+		rc=$?
 		[[ "$rc" -ne 0 ]] && echo "ERROR: script '$file' failed!" && exit 1
 		[[ "$has_post_execute" -ne 0 ]] && break
 		i=$((i+1))
@@ -107,7 +108,8 @@ then
 		"$SH" -c "$STARTUP" && rc=0 || rc=$?
 	else
 		f="/usr/local/bin/startup.sh" 
-		if [[ -f "$f" ]] then
+		if [[ -f "$f" ]]
+		then
 			"$SH" "$f" && rc=0 || rc=$?
 		else
 			tail -f /dev/null
@@ -118,8 +120,9 @@ else
 	then
 		su -s "$SH" "$STARTUP_USER" -c "$STARTUP" && rc=0 || rc=$?
 	else
-		f="/usr/local/bin/startup/startup.sh" "$@"
-		if [[ -f "$f" ]] then
+		f="/usr/local/bin/startup.sh" "$@"
+		if [[ -f "$f" ]]
+		then
 			su -s "$SH" "$STARTUP_USER" "$f" && rc=0 || rc=$?
 		else
 			tail -f /dev/null
