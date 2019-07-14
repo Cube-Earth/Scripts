@@ -20,8 +20,9 @@ function post_execute() {
 		fi
 	fi
 	
-	n=$(grep -e '^INITIALIZE=true$' /proc/*/environ 2>/dev/null | wc -l || rc=$?)
-	[[ "$n" -gt 0 ]] && export INITIALIZE=true
+#	n=$(grep -e '^INITIALIZE=true$' /proc/*/environ 2>/dev/null | wc -l || rc=$?)
+#	[[ "$n" -gt 0 ]] && export INITIALIZE=true
+	[[ -f /run/initialize.state ]] && export INITIALIZE=true
 		
 	for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^POST_EXECUTE|POST_EXECUTE_.*$' | sort || rc=$?)
 	do
@@ -48,6 +49,8 @@ function post_execute() {
 		echo
 done
 }
+
+[[ -f /run/initialize.state ]] && rm /run/initialize.state
 
 if [[ -f "/usr/local/bin/update-certs.sh" ]]
 then
