@@ -3,8 +3,11 @@ tmp="/tmp/scripts.$$"
 mkdir $tmp
 cd $tmp
 
-which curl && export DOWNLOAD="curl -sL" && rc=0 || rc=$?
-[ "$rc" -ne 0 ] && which wget && export DOWNLOAD="wget -qO-" && rc=0 || rc=$?
+which curl >/dev/null && export DOWNLOAD="curl -sL" && rc=0 || rc=$?
+if [ "$rc" -ne 0 ]
+then
+	which wget >/dev/null && export DOWNLOAD="wget -qO-" && rc=0 || rc=$?
+fi
 [ "$rc" -ne 0 ] && echo "ERROR: neither curl nor wget installed !" && exit 1
 
 is_bash=`readlink -f /proc/$$/exe | awk '{ i=match($0, /\/bash$/); if (i) { print "1" } else { print "0" } }'`
