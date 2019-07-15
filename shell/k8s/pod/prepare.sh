@@ -3,13 +3,17 @@ tmp="/tmp/scripts.$$"
 mkdir $tmp
 cd $tmp
 
+which curl && export DOWNLOAD="curl -sL" && rc=0 || rc=$?
+[ "$rc" -ne 0 ] && which wget && export DOWNLOAD="wget -qO-" && rc=0 || rc=$?
+[ "$rc" -ne 0 ] && echo "ERROR: neither curl nor wget installed !" && exit 1
+
 is_bash=`readlink -f /proc/$$/exe | awk '{ i=match($0, /\/bash$/); if (i) { print "1" } else { print "0" } }'`
 
 set -o errexit
 set -o nounset
-[[ "$is_bash" -eq 1 ]] && set -o pipefail
+[ "$is_bash" -eq 1 ] && set -o pipefail
 
-wget -qO- https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xfz -
+$DOWNLOAD https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xfz -
 find . -type f -name "*.sh" -exec chmod +x {} \;
 
 mv Scripts-master/shell/k8s/pod/lazy-shell.sh /usr/local/bin
@@ -20,7 +24,7 @@ while getopts "c:" opt; do
         c)
         	case "$OPTARG" in
         		certs)
-        			wget -qO- https://raw.githubusercontent.com/Cube-Earth/container-k8s-cert-server/master/pod-scripts/prepare-certs.sh | sh
+        			$DOWNLOAD https://raw.githubusercontent.com/Cube-Earth/container-k8s-cert-server/master/pod-scripts/prepare-certs.sh | sh
         			;;
 
         		run)
