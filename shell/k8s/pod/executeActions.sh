@@ -3,8 +3,8 @@ set -o errexit
 set -o nounset
 
 export ACTIONS_SAMPLE='--- createGroup;admins;5000
---- createUser;admin1;5001;admins;;-p 123
---- createSambaUser;admin2;5002;admins;;-p 123;123
+--- createUser;admin1;5001;admins
+--- createSambaUser;admin2;5002;admins
 --- createFile;/tmp/test.txt
 abc
 def
@@ -26,7 +26,7 @@ success
 warning
 '
 
-#ACTIONS="$ACTIONS_SAMPLE"
+#ACTIONS="$ACTIONS_SAMPLE"; PWD_admin1="abc"; PWD_admin2="def"
 
 
 function extractDelim {
@@ -60,14 +60,24 @@ function createUser {
 	[ ! -z "${params[2]-}" ] && opts="$opts -u \"${params[2]-}\""  # uid
 	[ ! -z "${params[3]-}" ] && opts="$opts -g \"${params[3]-}\""  # primary group (gid or name)
 	[ ! -z "${params[4]-}" ] && opts="$opts -g \"${params[4]-}\""  # list pf supplementary groups
+	
+	pwd=$(eval echo \$PWD_$path)
+	if [ -z "$pwd" ]
+	then
+		pwd=$(curl -Ls https://pod-cert-server/pwd/$path)
+		if [ -z "$pwd" ]
+		then
+			echo "ERROR: could not retrieve password from Pod Cert Server!"
+			return 1
+		fi
+	fi
+	opts="$opts -p '$(echo "$pwd" | openssl passwd -1 -stdin)'"
 			
 	if [ ! -z "${params[5]-}" ]    # backdoor
 	then
 		opts="$opts \"${params[5]-}\""
-		pwd=""
 	else
-		pwd=$(curl -Ls https://pod-cert-server/pwd/$path)
-		opts="$opts -M -s /sbin/nologin -p '$(echo "$pwd" | openssl passwd -1 -stdin)'"
+		opts="$opts -M -s /sbin/nologin"
 	fi
 
 	if cat /etc/passwd | grep -e "^$path:" > /dev/null 2>&1
@@ -111,10 +121,6 @@ function processAction {
 		createSambaUser)
 			showHeader
 			createUser
-			if [ -z "$pwd" ]
-			then
-				pwd="${params[6]}"
-			fi
 			echo -e "$pwd\n$pwd\n" | smbpasswd -a "$path"
 			smbpasswd -e "$path"
 			;;
