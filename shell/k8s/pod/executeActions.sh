@@ -61,7 +61,7 @@ function createUser {
 	[ ! -z "${params[3]-}" ] && opts="$opts -g \"${params[3]-}\""  # primary group (gid or name)
 	[ ! -z "${params[4]-}" ] && opts="$opts -g \"${params[4]-}\""  # list pf supplementary groups
 	
-	pwd=$(eval echo \$PWD_$path)
+	pwd=$(eval echo \$\{PWD_$path\-})
 	if [ -z "$pwd" ]
 	then
 		pwd=$(curl -Ls https://pod-cert-server/pwd/$path)
