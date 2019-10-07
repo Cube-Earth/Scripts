@@ -139,8 +139,7 @@ function processAction {
 			[ ! -z "$perm" ] && chmod "$perm" "$path"
 			;;
 
-		createDir)
-		createDirectory)
+		createDir|createDirectory)
 			showHeader
 			mkdir -p "$path"
 			[ ! -z "$owner" ] && chown -R "$owner" "$path"
