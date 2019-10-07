@@ -128,7 +128,6 @@ function processAction {
 		createFile)
 			showHeader
 			echo "$cnt" > "$path"
-			echo $? - $path
 			[ ! -z "$owner" ] && chown "$owner" "$path" || rc=$?
 			[ ! -z "$perm" ] && chmod "$perm" "$path" || rc=$?
 			;;
@@ -141,6 +140,7 @@ function processAction {
 			;;
 
 		createDir)
+		createDirectory)
 			showHeader
 			mkdir -p "$path"
 			[ ! -z "$owner" ] && chown -R "$owner" "$path"
