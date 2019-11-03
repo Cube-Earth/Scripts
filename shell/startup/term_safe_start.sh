@@ -1,10 +1,11 @@
-function term_safe_start {
-	if [[ -z "$TERM" ]]
+#!/bin/sh
+#function term_safe_start {
+	if [[ ! -t 0 ]]
 	then
-		echo "INFO: Container started without terminal."
+		echo "INFO: Container started non-interactively."
 		eval $1
 	else
-		echo "WARN: Container started with terminal. Waiting for SIGWINCH to prevent errors!"
+		echo "WARN: Container started interactively. Waiting for SIGWINCH to prevent errors!"
 		trap "CONSUMED=1; echo 'INFO: SIGWINCH received. Continuing startup ...'; eval $1" WINCH
 		n=${2-15}
 		while [[ "$n" -gt 0 ]] && [[ -z "$CONSUMED" ]]
@@ -19,4 +20,4 @@ function term_safe_start {
 			eval $1
 		fi
 	fi
-}
+#}

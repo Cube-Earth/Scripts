@@ -1,9 +1,37 @@
 #!/bin/lsh
 
+cd /tmp
+
+SCRIPT_DIR="$(dirname "$0")"
+
 SH="/bin/lsh"
 
 OFS=$IFS
 IFS=$'\n'
+
+
+function handleInteractiveShell
+{
+	if [[ ! -t 0 ]]
+	then
+		echo "INFO: Container started non-interactively."
+	else
+		echo "WARN: Container started interactively. Waiting for SIGWINCH to prevent errors!"
+		trap "CONSUMED=1; echo 'INFO: SIGWINCH received. Continuing startup ...'" WINCH
+		n=${2-15}
+		while [[ "$n" -gt 0 ]] && [[ -z "$CONSUMED" ]]
+		do
+			sleep 0.2
+			n=$((n-1))
+		done
+		if [[ -z "${CONSUMED-}" ]]
+		then
+			trap - WINCH
+			echo "BOGUS: No SIGWINCH received. Nevertheless continuing startup ..."
+		fi
+	fi
+}
+
 
 function post_execute() {
 	sleep 0.5
@@ -12,9 +40,9 @@ function post_execute() {
 	then
 		"$SH" -c "$WAIT_POST_EXECUTE"
 	else
-		if [[ -f "/usr/local/bin/post_execute/wait-ready.sh" ]]
+		if [[ -f "/opt/post_execute/wait-ready.sh" ]]
 		then
-			/usr/local/bin/post_execute/wait-ready.sh
+			/opt/post_execute/wait-ready.sh
 		else
 			sleep 5
 		fi
@@ -37,7 +65,7 @@ function post_execute() {
 		echo
 	done
 	
-	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 \( -name "*.sh" -and ! -name "has_*" -and ! -name "has-*" -and ! -name "wait-ready.sh" \) 2>/dev/null || rc=$?)
+	for file in $(find /opt/post_execute -type f -maxdepth 1 \( -name "*.sh" -and ! -name "has_*" -and ! -name "has-*" -and ! -name "wait-ready.sh" \) 2>/dev/null || rc=$?)
 	do
 		echo
 		echo "--- start script $file ----------------"
@@ -50,12 +78,32 @@ function post_execute() {
 done
 }
 
+function createStartupCommand
+{
+	local cmd=""
+	
+	[ ! -z "${STARTUP-}" ] && echo "$STARTUP" > /tmp/startup.sh && chmod +x /tmp/startup.sh && cmd="/tmp/startup.sh" "$@"
+
+	[ -z "$cmd" ] && [ -f "/opt/startup/startup.sh" ] && cmd="/opt/startup/startup.sh" "$@"
+	[ ! -z "$cmd" ] && [ ! -z "${STARTUP_USER-}" ] && cmd="su -s \"$SH\" \"$STARTUP_USER\" $cmd"
+	[ ! -z "$cmd" ] && [ -z "${STARTUP_USER-}" ] && cmd="\"$SH\" $cmd"
+	[ -z "$cmd" ] && cmd="tail -f /dev/null"
+	
+	echo $cmd
+}
+
+
+handleInteractiveShell
+
 [[ -f /run/initialize.state ]] && rm /run/initialize.state
 
 if [[ -f "/usr/local/bin/update-certs.sh" ]]
 then
 	"/usr/local/bin/update-certs.sh"
 fi
+
+"$SCRIPT_DIR/executeActions.sh"
+
 
 for var in $(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr(\$0,0,RLENGTH-1); \$0=substr(\$0,RLENGTH+1); c=!match(\$0, /^((\”'\")|('[^']*'))*\$/); l=0 } l && c { c=!match(\$0, /^[^']*'((\”'\")|('[^']*'))*$/) }" | grep -E '^PRE_EXECUTE|PRE_EXECUTE_.*$' | sort || rc=$?)
 do
@@ -70,7 +118,7 @@ do
 	echo
 done
 
-for file in $(ls -1 /usr/local/bin/pre_execute 2>/dev/null || rc=$?)
+for file in $(ls -1 /opt/pre_execute 2>/dev/null || rc=$?)
 do
 	echo
 	echo "--- start script $file ----------------"
@@ -87,7 +135,7 @@ has_post_execute=$(set | awk "{ l=1 } !c && match(\$0, /^[^=]+=/) { print substr
 if [[ "$has_post_execute" -eq 0 ]]
 then
 	i=0
-	for file in $(find /usr/local/bin/post_execute -type f -maxdepth 1 \( -name "has_*.sh" -or -name "has-*.sh" \) || rc=$?)
+	for file in $(find /opt/post_execute -type f -maxdepth 1 \( -name "has_*.sh" -or -name "has-*.sh" \) || rc=$?)
 	do
 		has_post_execute=$("$SH" "$file")
 		rc=$?
@@ -104,34 +152,8 @@ then
 	post_execute &
 fi
 
-if [[ -z "${STARTUP_USER-}" ]]
-then
-	if [[ ! -z "${STARTUP-}" ]]
-	then
-		"$SH" -c "$STARTUP" && rc=0 || rc=$?
-	else
-		f="/usr/local/bin/startup.sh" 
-		if [[ -f "$f" ]]
-		then
-			"$SH" "$f" && rc=0 || rc=$?
-		else
-			tail -f /dev/null
-		fi
-	fi
-else
-	if [[ ! -z "${STARTUP-}" ]]
-	then
-		su -s "$SH" "$STARTUP_USER" -c "$STARTUP" && rc=0 || rc=$?
-	else
-		f="/usr/local/bin/startup.sh" "$@"
-		if [[ -f "$f" ]]
-		then
-			su -s "$SH" "$STARTUP_USER" "$f" && rc=0 || rc=$?
-		else
-			tail -f /dev/null
-		fi
-	fi
-fi
+
+eval $(createStartupCommand) && rc=0 || rc=$?
 [[ $rc != 0 ]] && echo "ERROR: script failed with exit code $rc!" || echo "SUCCESS: script succeeded!"
 [[ $rc != 0 ]] && exit 1
 

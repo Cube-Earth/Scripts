@@ -19,9 +19,14 @@ set -o nounset
 $DOWNLOAD https://github.com/Cube-Earth/Scripts/archive/master.tar.gz | tar xfz -
 find . -type f -name "*.sh" -exec chmod +x {} \;
 
-mv Scripts-master/shell/k8s/pod/lazy-shell.sh /usr/local/bin
-ln -s /usr/local/bin/lazy-shell.sh /bin/lsh
+SCRIPT_DIR="/opt/scripts"
 
+mkdir -p "$(dirname "$SCRIPT_DIR")"
+mv Scripts-master "$SCRIPT_DIR"
+
+ln -s "$SCRIPT_DIR/shell/lazy-shell.sh" /bin/lsh
+
+export INSTALL=1
 while getopts "c:" opt; do
     case "${opt}" in
         c)
@@ -31,12 +36,8 @@ while getopts "c:" opt; do
         			;;
 
         		run)
-        			mv Scripts-master/shell/k8s/pod/run.sh /usr/local/bin
-        			mkdir /usr/local/bin/pre_execute /usr/local/bin/post_execute
-        			;;
-        			
-        		term)
-        			mv Scripts-master/shell/docker/term_safe_start.inc /usr/local/bin
+        			ln -s "$SCRIPT_DIR/shell/startup/run.sh" /usr/bin/run.sh
+        			mkdir -p /opt/pre_execute /opt/post_execute
         			;;
         			
         		*)
@@ -46,6 +47,9 @@ while getopts "c:" opt; do
         			
         	esac
             ;;
+
+        s)
+        	"$SCRIPT_DIR/shell/$OPTARG.sh"
             
 		\?)
       		echo "Invalid option: -$OPTARG" >&2
@@ -54,6 +58,7 @@ while getopts "c:" opt; do
           esac
 done
 shift $((OPTIND-1))
+unset INSTALL
 
 rm -Rf $tmp
 
