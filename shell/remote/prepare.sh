@@ -26,6 +26,23 @@ mv Scripts-master "$SCRIPT_DIR"
 
 ln -s "$SCRIPT_DIR/shell/lazy-shell.sh" /bin/lsh
 
+os=$(cat /etc/os-release | awk '/^ID=/ { sub(/^ID=/, ""); print $0 }')
+
+case "$os" in
+	debian|ubuntu)
+		apt-get update
+		RPM_INSTALL="apt-get install -y" 
+		;;
+
+	centos)
+		RPM_INSTALL="yum install -y"
+		;;
+
+	alpine)
+		RPM_INSTALL="apk add --no-cache"
+		;;
+esac
+
 export INSTALL=1
 while getopts "c:" opt; do
     case "${opt}" in
@@ -38,6 +55,7 @@ while getopts "c:" opt; do
         		run)
         			ln -s "$SCRIPT_DIR/shell/startup/run.sh" /usr/bin/run.sh
         			mkdir -p /opt/pre_execute /opt/post_execute
+        			$RPM_INSTALL bash
         			;;
         			
         		*)
