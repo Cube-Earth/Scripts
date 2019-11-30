@@ -1,0 +1,15 @@
+test1:
+	echo 1
+	echo 2
+
+test2:
+	echo 3
+
+# echo xxx
+test3:
+	@test2
+	@test1   # test
+	# echo yyy
+	echo 4
+    echo 5   # test
+    
