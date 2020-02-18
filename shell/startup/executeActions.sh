@@ -34,7 +34,7 @@ function extractDelim {
 	IFS=' ' read -ra arr << EOF
 $line
 EOF
-	if [ "${#arr[@]}" -le 1 ] || -z [ "${arr[0]-}" ]
+	if [ "${#arr[@]}" -le 1 ] || [ -z "${arr[0]-}" ]
 	then
 		echo "ERROR: missing or malformed action definitions!"
 		return 1
